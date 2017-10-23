@@ -8,7 +8,7 @@ The data basically consists of one large table of compound and the presence and 
 
 ## Selector
 
-![alt tag](https://github.com/ravengao/Discriminate-Patterns/blob/master/img/01.png)
+![alt tag](https://github.com/ravengao/Discriminate-Patterns/blob/master/img/dp-heatmap.png)
 
 ## PCS (Parallel Coordinate + Scatterplots) and Network Tree
 

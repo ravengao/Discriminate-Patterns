@@ -22,10 +22,13 @@ A = df.loc[1:,1:].astype(int).as_matrix()
 def index():
     return render_template("index.html")
 
-@app.route("/filter/patternListByCondition",methods=['GET','POST'])
-def patternListByCondition():    
-    return "haha"
+@app.route("/parallelCoord",methods=['GET','POST'])
+def parallelCoord():
+    return render_template("parallel_coord.html")
 
+@app.route("/network",methods=['GET','POST'])
+def network():
+    return render_template("network.html")
 
 @app.route("/network/createSubset",methods=['GET','POST'])
 def create_subset():
@@ -47,8 +50,6 @@ def create_subset():
             com_list.append(A[row])
             if row <= activeNum:
                 new_active_num += 1
-
-
     df1 = pd.DataFrame(com_list)
     for n in range(colNum):
         new_freq = sum(df1[n])
@@ -66,14 +67,60 @@ def create_subset():
         return ""
 
 
-@app.route("/parallelCoord",methods=['GET','POST'])
-def parallelCoord():
-    return render_template("parallel_coord.html")
+@app.route("/network/createUnion",methods=['GET','POST'])
+def create_union():
+    overallPatterns = request.form['overall']
+    selected = set(map(int, request.form['pattern'].split(',')))
+    overall = overallPatterns.replace('[[','').replace(']]','').split("],[")
+    unionList = []
 
-@app.route("/network",methods=['GET','POST'])
-def network():
-    return render_template("network.html")
+    com_list = []
+    new_active_num = 0
+    new_pattern_freq = {}
+    for row in range(rowNum):
+        a_counter = 0
+        appear = 1
+        for n in selected:
+            appear = appear & A[row][n]
+        if appear:
+            com_list.append(A[row])
+            if row <= activeNum:
+                new_active_num += 1
+    df1 = pd.DataFrame(com_list)    
+                
+    for element in overall:
+        eleSet = set(map(int,element.split(',')))
+        difference = eleSet - selected
+        active_freq = 0
+        inactive_freq = 0
+        for row in range(len(df1)):
+            if row < new_active_num:
+                appear = 1
+                for col in difference:
+                    appear = appear & df1.loc[row,col]
+                if appear == 1:
+                    active_freq += 1
+            else:
+                appear = 1
+                for col in difference:
+                    appear = appear & df1.loc[row,col]
+                if appear == 1:
+                    inactive_freq += 1
 
+        total_freq = active_freq + inactive_freq
+        #if (total_freq/support >= confidence):
+        if (eleSet|selected) != selected:
+            new_pattern_freq[frozenset(eleSet|selected)] = [total_freq,[(active_freq/activeNum), (inactive_freq/(rowNum - activeNum))]]
+
+    if len(new_pattern_freq) > 0:
+        df2 = pd.DataFrame(new_pattern_freq).T
+        df2.columns = ['size','aiScore']
+        df2['name'] = df2.index   
+        jsbuffer = df2.to_json(orient='records')
+        return jsbuffer
+    else:
+        return ""
+    
 
 @app.route("/calculation/aiRatio",methods=['GET','POST'])
 def calculation_aiRatio():
@@ -91,7 +138,6 @@ def calculation_aiRatio():
                 output_arr.append([row,col,ai_ratio.loc[row][col]])
     output = pd.DataFrame(output_arr)
     jsbuffer = output.to_json(orient='records')
-    
     return jsbuffer
 
 
